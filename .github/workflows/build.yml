@@ -1,0 +1,45 @@
+name: SonarCloud scan
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install SonarScanner
+        run: dotnet tool install --global dotnet-sonarscanner --version 8.0.3
+
+      - name: Add dotnet tools to PATH
+        run: echo "${{ github.home }}/.dotnet/tools" >> $GITHUB_PATH
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run SonarQube Scanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        shell: bash
+        run: dotnet-sonarscanner begin /k:"Dungeon-and-stone-Organization_dungeon-and-stone-backend" /o:"dungeon-and-stone-organization" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.scanner.scanAll=false
+
+      - name: Build the project
+        run: dotnet build --no-restore
+      
+#      - name: Run tests
+#        run: dotnet test --no-restore --verbosity normal
+
+      - name: End SonarQube Scanner
+        run: dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
